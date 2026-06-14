@@ -1,1 +1,413 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miori Payment</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Mitr:wght@300;400;500&family=Sarabun:wght@400;500;600&family=Pattaya&family=Yesteryear&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --ep: #FFAEC9;
+    --bg: #FFF0F5;
+    --gc: rgba(255,174,201,0.25);
+    --tp: #FF7597;
+    --wd: #6D3D4D;
+    --wh: #FFFFFF;
+    --cb: #FFF8FA;
+  }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--cb);
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    overflow-x: hidden;
+    background-image: radial-gradient(circle at 15% 15%, #FFE3EC 0%, transparent 40%),
+                      radial-gradient(circle at 85% 85%, #FFE3EC 0%, transparent 40%);
+  }
+
+  /* ===== OVERLAY ===== */
+  #overlay {
+    position: fixed; inset: 0;
+    background: rgba(109,61,77,0.25);
+    backdrop-filter: blur(5px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    animation: fadeIn .3s ease;
+  }
+  @keyframes fadeIn { from{ opacity:0 } to{ opacity:1 } }
+
+  /* ===== ENVELOPE ===== */
+  .envelope-wrap {
+    position: relative;
+    cursor: pointer;
+    width: min(380px, 90vw);
+    container-type: inline-size;
+    filter: drop-shadow(0 15px 35px rgba(255,174,201,0.45));
+    transition: transform .3s cubic-bezier(0.175,0.885,0.32,1.275);
+  }
+  .envelope-wrap:hover { transform: translateY(-6px) scale(1.02); }
+  .envelope-wrap:active { transform: scale(0.97); }
+
+  .env-img {
+    width: 100%;
+    border-radius: 24px;
+    display: block;
+  }
+
+  /* ===== "CLICK" TEXT OVERLAY =====
+     คลุมคำว่า "Click" เดิมในรูปด้วยกล่องสีกลืนพื้น
+     แล้ววางข้อความ HTML จริงทับ เพื่ออนิเมตได้ */
+  .click-cover {
+    position: absolute;
+    left: 36%;
+    top: 67%;
+    width: 28%;
+    height: 12%;
+    background: #FFE4ED;
+    border-radius: 10px;
+    pointer-events: none;
+  }
+
+  .click-text {
+    position: absolute;
+    left: 36%;
+    top: 68%;
+    width: 24%;
+    height: 12%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    pointer-events: none;
+    font-family: 'Yesteryear', cursive;
+    font-weight: 100;
+    font-size: 6cqw;
+    color: var(--tp);
+    text-shadow: 0 2px 4px rgba(255,255,255,0.8);
+    line-height: 1;
+  }
+
+  .click-text .heart {
+    display: inline-block;
+    font-size: 0.7em;
+    animation: heartBeat 1.4s ease-in-out infinite;
+  }
+  .click-text .heart:last-child { animation-delay: .2s; }
+
+  .click-text .word {
+    display: inline-block;
+    color: #FFC2D6;
+    -webkit-text-stroke: 2px #FFFFFF;
+    text-stroke: 2px #FFFFFF;
+    paint-order: stroke fill;
+    animation: clickBounce 1.6s ease-in-out infinite;
+  }
+
+  @keyframes heartBeat {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.25); }
+  }
+
+  @keyframes clickBounce {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-5px); }
+  }
+
+  .click-hint {
+    text-align: center; margin-top: 18px;
+    font-size: 13px; color: rgba(255,255,255,0.95);
+    letter-spacing: .8px; font-family: 'Mitr', sans-serif;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100%{ opacity:.7; transform: translateY(0); }
+    50%    { opacity:1; transform: translateY(-3px); }
+  }
+
+  /* ===== MAIN PAGE ===== */
+  #main {
+    display: none;
+    width: min(450px, 92vw);
+    background: var(--wh);
+    border-radius: 24px;
+    position: relative;
+    box-shadow: 0 15px 45px rgba(255,174,201,0.2),
+                0 0 0 8px var(--wh),
+                0 0 0 11px var(--ep);
+    margin: 20px 0;
+  }
+  #main::before {
+    content: '';
+    position: absolute; inset: 12px;
+    border: 2.5px dashed #FFE1EA; border-radius: 14px;
+    pointer-events: none; z-index: 0;
+  }
+  @keyframes slideUp {
+    from{ opacity:0; transform: translateY(40px) scale(0.96); }
+    to  { opacity:1; transform: translateY(0) scale(1); }
+  }
+
+  .page-header { padding: 45px 35px 15px; text-align: center; position: relative; z-index: 1; }
+  .page-header h1 {
+    font-family: 'Pattaya', sans-serif;
+    font-weight: 400; font-size: 32px; color: var(--tp);
+  }
+  .page-header p {
+    font-size: 13px; color: var(--wd); margin-top: 6px; letter-spacing: .3px;
+    font-family: 'Mitr', sans-serif; font-weight: 300; opacity: 0.8;
+  }
+
+  .page-body { padding: 10px 35px 45px; position: relative; z-index: 1; }
+
+  /* ===== QR SECTION ===== */
+  .qr-section { text-align: center; margin-bottom: 25px; }
+  .qr-frame {
+    width: 260px; height: 260px;
+    border-radius: 22px;
+    border: 3px dashed var(--ep);
+    background: #FFFDFE;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px; margin: 0 auto 15px; cursor: pointer;
+    transition: all .25s ease; overflow: hidden;
+  }
+  .qr-frame:hover { border-color: var(--tp); background: #FFF5F8; transform: scale(1.02); }
+  .qr-frame img { width: 100%; height: 100%; object-fit: cover; border-radius: 18px; }
+  .qr-placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .qr-icon { font-size: 48px; }
+  .qr-label { font-size: 13px; color: var(--wd); opacity: 0.6; font-family: 'Mitr', sans-serif; }
+  .qr-note { font-size: 12px; color: var(--wd); line-height: 1.6; opacity: 0.75; }
+  #qr-input { display: none; }
+
+  .section-title {
+    font-family: 'Mitr', sans-serif;
+    font-size: 14px; font-weight: 400;
+    color: var(--tp); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* ===== PAYMENT LIST ===== */
+  .payment-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+  .payment-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #FFF2F6; border-radius: 16px; padding: 16px 20px;
+    border: 1px solid rgba(255,174,201,0.4);
+    transition: all 0.2s ease;
+  }
+  .payment-row:hover { transform: translateX(4px); background: #FFF0F4; }
+  .payment-info { display: flex; flex-direction: column; gap: 3px; }
+  .payment-info .bank-name {
+    font-size: 12px; font-weight: 400; color: var(--wd);
+    font-family: 'Mitr', sans-serif; opacity: 0.7; letter-spacing: .3px;
+  }
+  .payment-info .acc-number {
+    font-size: 18px; font-family: 'Mitr', sans-serif;
+    color: var(--wd); font-weight: 500; letter-spacing: 0.5px;
+  }
+  .copy-btn {
+    background: var(--wh); color: var(--tp);
+    border: 2px solid var(--ep); border-radius: 20px;
+    padding: 6px 18px; font-size: 12px;
+    font-family: 'Mitr', sans-serif; font-weight: 400;
+    cursor: pointer; transition: all .2s ease;
+  }
+  .copy-btn:hover { background: var(--tp); color: var(--wh); border-color: var(--tp); }
+  .copy-btn:active { transform: scale(.94); }
+  .copy-btn.copied { background: #EBFCEF; color: #2B7A3C; border-color: #A1E3B0; }
+
+  /* ===== WARNING BOX ===== */
+  .warning-box {
+    background: #FFFDFE; border: 1.5px dashed var(--ep);
+    border-radius: 16px; padding: 15px 20px; margin-bottom: 25px;
+  }
+  .warning-box .warn-title {
+    font-family: 'Mitr', sans-serif; font-size: 13px; color: var(--tp);
+    margin-bottom: 6px; display: flex; align-items: center; gap: 4px;
+  }
+  .warning-box ul { list-style: none; }
+  .warning-box ul li {
+    font-size: 12.5px; color: var(--wd); opacity: 0.8;
+    padding: 4px 0; display: flex; align-items: flex-start; gap: 6px;
+  }
+  .warning-box ul li::before { content: '🌸'; font-size: 10px; flex-shrink: 0; margin-top: 2px; }
+
+  /* ===== CONTACT ===== */
+  .contact-list {
+    display: flex; flex-direction: row;
+    justify-content: center; gap: 18px; margin-top: 5px;
+  }
+  .contact-item {
+    display: flex; align-items: center; justify-content: center;
+    width: 44px; height: 44px; background: #FFF2F6;
+    border-radius: 50%; text-decoration: none;
+    border: 1px solid rgba(255,174,201,0.3);
+    transition: all .2s ease;
+  }
+  .contact-item:hover {
+    background: var(--wh); border-color: var(--tp);
+    transform: translateY(-4px); box-shadow: 0 4px 10px rgba(255,174,201,0.2);
+  }
+  .contact-icon { font-size: 18px; }
+
+  .divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--ep), transparent);
+    margin: 25px 0; border: none; opacity: 0.6;
+  }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed; bottom: 35px; left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--wd); color: var(--wh);
+    padding: 11px 26px; border-radius: 30px;
+    font-size: 13px; font-family: 'Mitr', sans-serif;
+    opacity: 0; transition: all .3s cubic-bezier(0.175,0.885,0.32,1.175);
+    pointer-events: none; z-index: 9999;
+    box-shadow: 0 10px 25px rgba(109,61,77,0.25);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+  <!-- ===== ENVELOPE OVERLAY ===== -->
+  <div id="overlay">
+    <div style="text-align:center">
+      <div class="envelope-wrap" onclick="openEnvelope()">
+        <!-- ใส่ลิ้งรูป ตรง เท่านั้นนะไม่งั้นมันจะโหลดไม่ได้ เข้าใจมุ้ย -->
+        <img class="env-img" src="https://cdn.discordapp.com/attachments/569930366887002138/1515719766432682124/download.png?ex=6a300789&is=6a2eb609&hm=b1047722a9c37f77b9d07e17165b1482c5b79ecc559b6434b72930bdf6c89aae&" alt="Envelope">
+        <div class="click-text">
+          <span class="heart">❤</span>
+          <span class="word">Click</span>
+          <span class="heart">❤</span>
+        </div>
+      </div>
+      <p class="click-hint">✨ แตะซองจดหมายเพื่อเปิดดูข้อมูลชำระเงินนะคะ ✨</p>
+    </div>
+  </div>
+
+  <!-- ===== MAIN PAGE ===== -->
+  <div id="main">
+    <div class="page-header">
+      <h1>Miori Shop</h1>
+      <p>ขอบคุณลูกค้าที่อุดหนุนนะคะ เลือกช่องทางโอนเงินด้านล่างได้เลยค่ะ</p>
+    </div>
+
+    <div class="page-body">
+
+      <div class="qr-section">
+        <label for="qr-input">
+          <div class="qr-frame" id="qrFrame">
+            <div class="qr-placeholder" id="qrPlaceholder">
+              <span class="qr-icon">🖼️</span>
+              <span class="qr-label">แตะเพื่อใส่รูป QR / สลิป</span>
+            </div>
+            <img id="qrImg" alt="QR Code" style="display:none"/>
+          </div>
+        </label>
+        <input type="file" id="qr-input" accept="image/*" onchange="loadQR(event)">
+        <p class="qr-note">สามารถเซฟรูปแสกน หรือคัดลอกเลขบัญชีได้เลยนะคะ 💗</p>
+      </div>
+
+      <hr class="divider">
+
+      <p class="section-title">🌸 ช่องทางการชำระเงิน</p>
+      <div class="payment-list">
+        <div class="payment-row">
+          <div class="payment-info">
+            <div class="bank-name">ธนาคารกสิกรไทย (KBank)</div>
+            <div class="acc-number">012-3-45678-9</div>
+          </div>
+          <button class="copy-btn" onclick="copyText('0123456789', this)">คัดลอก</button>
+        </div>
+        <div class="payment-row">
+          <div class="payment-info">
+            <div class="bank-name">ทรูมันนี่ วอลเล็ท / พร้อมเพย์</div>
+            <div class="acc-number">087-654-3219</div>
+          </div>
+          <button class="copy-btn" onclick="copyText('0876543219', this)">คัดลอก</button>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <div class="warn-title">🧸 ข้อควรระวังเล็กๆ</div>
+        <ul>
+          <li>รบกวนเช็คชื่อบัญชีก่อนกดยืนยันการโอนเงินทุกครั้งนะคะ</li>
+          <li>โอนเรียบร้อยแล้ว ส่งสลิปกลับมาทางช่องแชทได้เลยค่ะ!</li>
+          <li>โอนด้วย Wallet ไม่บวกเพิ่มค่ะ 💕</li>
+        </ul>
+      </div>
+
+      <hr class="divider">
+
+      <div class="contact-section">
+        <p class="section-title">💌 ช่องทางติดต่อ</p>
+        <div class="contact-list">
+          <a class="contact-item" href="https://line.me/ti/p/~yourlineID" target="_blank" title="LINE">
+            <span class="contact-icon">💬</span>
+          </a>
+          <a class="contact-item" href="https://www.facebook.com/yourpage" target="_blank" title="Facebook">
+            <span class="contact-icon">🎀</span>
+          </a>
+          <a class="contact-item" href="tel:0876543219" title="โทรหาเรา">
+            <span class="contact-icon">📞</span>
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="toast">คัดลอกเลขบัญชีเรียบร้อยแล้วค่ะ 🌸✨</div>
+
+  <script>
+    function openEnvelope() {
+      const overlay = document.getElementById('overlay');
+      overlay.style.transition = 'opacity .4s ease-out';
+      overlay.style.opacity = 0;
+      setTimeout(() => {
+        overlay.style.display = 'none';
+        const main = document.getElementById('main');
+        main.style.display = 'block';
+        main.style.animation = 'slideUp .6s cubic-bezier(.16,1,.3,1) both';
+      }, 400);
+    }
+
+    function loadQR(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        const img = document.getElementById('qrImg');
+        img.src = ev.target.result;
+        img.style.display = 'block';
+        document.getElementById('qrPlaceholder').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function copyText(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = '✓ สำเร็จ';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'คัดลอก';
+          btn.classList.remove('copied');
+        }, 1800);
+        showToast();
+      });
+    }
+
+    function showToast() {
+      const t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+  </script>
+
+</body>
+</html>
